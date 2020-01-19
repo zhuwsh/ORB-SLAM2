@@ -86,6 +86,7 @@ public:
     static long unsigned int nNextId;
     long int mnFirstKFid;
     long int mnFirstFrame;
+    //观测到该地图点的相机数
     int nObs;
 
     // Variables used by the tracking

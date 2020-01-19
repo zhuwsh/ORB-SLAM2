@@ -68,6 +68,7 @@ public:
 
 protected:
     std::set<MapPoint*> mspMapPoints;
+    //地图中存储关键帧的容器
     std::set<KeyFrame*> mspKeyFrames;
 
     std::vector<MapPoint*> mvpReferenceMapPoints;

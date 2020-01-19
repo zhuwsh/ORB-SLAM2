@@ -111,3 +111,8 @@ add_executable(mono_euroc
 Examples/Monocular/mono_euroc.cc)
 target_link_libraries(mono_euroc ${PROJECT_NAME})
 
+# Add by zhuweisheng for test
+#生成调用摄像头可执行文件
+add_executable(myslam myslam.cc)
+target_link_libraries(myslam ${PROJECT_NAME})
+

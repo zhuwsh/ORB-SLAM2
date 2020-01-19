@@ -63,7 +63,9 @@ using namespace std;
 namespace ORB_SLAM2
 {
 
-
+/**
+ * 构建PnP求解器，求解当知道n个3D空间点及其投影位置时，如何估计相机的位姿
+*/
 PnPsolver::PnPsolver(const Frame &F, const vector<MapPoint*> &vpMapPointMatches):
     pws(0), us(0), alphas(0), pcs(0), maximum_number_of_correspondences(0), number_of_correspondences(0), mnInliersi(0),
     mnIterations(0), mnBestInliers(0), N(0)
@@ -101,6 +103,7 @@ PnPsolver::PnPsolver(const Frame &F, const vector<MapPoint*> &vpMapPointMatches)
     }
 
     // Set camera calibration parameters
+    // 设置相机标定参数
     fu = F.fx;
     fv = F.fy;
     uc = F.cx;
@@ -117,20 +120,25 @@ PnPsolver::~PnPsolver()
   delete [] pcs;
 }
 
-
+/**
+ * 该函数定义默认的参数值如下：
+ * (double probability = 0.99, int minInliers = 8 , int maxIterations = 300, int minSet = 4, float epsilon = 0.4,
+                           float th2 = 5.991)
+*/
 void PnPsolver::SetRansacParameters(double probability, int minInliers, int maxIterations, int minSet, float epsilon, float th2)
 {
     mRansacProb = probability;
     mRansacMinInliers = minInliers;
     mRansacMaxIts = maxIterations;
     mRansacEpsilon = epsilon;
-    mRansacMinSet = minSet;
+    mRansacMinSet = minSet;//值为4
 
     N = mvP2D.size(); // number of correspondences
 
     mvbInliersi.resize(N);
 
     // Adjust Parameters according to number of correspondences
+    // 根据对应关系的数据来调整参数
     int nMinInliers = N*mRansacEpsilon;
     if(nMinInliers<mRansacMinInliers)
         nMinInliers=mRansacMinInliers;
@@ -161,7 +169,10 @@ cv::Mat PnPsolver::find(vector<bool> &vbInliers, int &nInliers)
     bool bFlag;
     return iterate(mRansacMaxIts,bFlag,vbInliers,nInliers);    
 }
-
+/**
+ * 迭代优化
+ * 
+*/
 cv::Mat PnPsolver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInliers, int &nInliers)
 {
     bNoMore = false;

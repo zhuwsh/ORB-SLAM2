@@ -1333,7 +1333,27 @@ int TemplatedVocabulary<TDescriptor,F>::stopWords(double minWeight)
 }
 
 // --------------------------------------------------------------------------
-
+/**
+ * vocabulary:
+   k: 10  #词典树的分枝因子，即kmeas的K族
+   L: 5   #树的深度
+   scoringType: 0  #相似度
+   weightingType: 0   #权重
+   nodes: #节点，以下分别是节点id，父节点id，权重
+      - { nodeId:1, parentId:0, weight:0.,  
+          descriptor:"63 127 236 133 254 19 222 248 83 238 156 239 73 108 215 135 127 229 247 231 237 243 237 206 62 95 239 183 111 255 122 213 " }
+      - { nodeId:2, parentId:0, weight:0.,
+    ...
+    words:
+      - { wordId:0, nodeId:23 }
+      - { wordId:1, nodeId:31 }
+    ...
+ * ORB-SLAM2中字典的前两行显示如下：
+ * 10 6  0 0 #表示上面的k，L，s，w
+ * 0 0 252 188 188 242 169 109 85 143 187 191 164 25 222 255 72 27 129 215 237 16 58 111 219 51 219 211 85 127 192 112 134 34  0
+ * ...
+ * # 0表示节点的父节点；0表示是否是叶节点，是的话为1，否则为0；252-34表示orb特征；最后一位是权重
+*/
 template<class TDescriptor, class F>
 bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &filename)
 {
@@ -1341,7 +1361,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
     f.open(filename.c_str());
 	
     if(f.eof())
-	return false;
+	    return false;
 
     m_words.clear();
     m_nodes.clear();
@@ -1350,19 +1370,20 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
     getline(f,s);
     stringstream ss;
     ss << s;
-    ss >> m_k;
-    ss >> m_L;
+    ss >> m_k;//k族，也就是分为多少簇
+    ss >> m_L;//树的深度
     int n1, n2;
-    ss >> n1;
-    ss >> n2;
+    ss >> n1;//相似度
+    ss >> n2;//权重
 
     if(m_k<0 || m_k>20 || m_L<1 || m_L>10 || n1<0 || n1>5 || n2<0 || n2>3)
     {
         std::cerr << "Vocabulary loading failure: This is not a correct text file!" << endl;
-	return false;
+	      return false;
     }
-    
+    //n1相似度表现为分值
     m_scoring = (ScoringType)n1;
+    //n2为权值
     m_weighting = (WeightingType)n2;
     createScoringObject();
 
@@ -1384,15 +1405,15 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
 
         int nid = m_nodes.size();
         m_nodes.resize(m_nodes.size()+1);
-	m_nodes[nid].id = nid;
+	      m_nodes[nid].id = nid;
 	
         int pid ;
-        ssnode >> pid;
+        ssnode >> pid;//父节点id
         m_nodes[nid].parent = pid;
         m_nodes[pid].children.push_back(nid);
 
         int nIsLeaf;
-        ssnode >> nIsLeaf;
+        ssnode >> nIsLeaf;//是否为叶子节点
 
         stringstream ssd;
         for(int iD=0;iD<F::L;iD++)
@@ -1400,12 +1421,12 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
             string sElement;
             ssnode >> sElement;
             ssd << sElement << " ";
-	}
+	      }
         F::fromString(m_nodes[nid].descriptor, ssd.str());
 
-        ssnode >> m_nodes[nid].weight;
+        ssnode >> m_nodes[nid].weight;//最后一个值是weight
 
-        if(nIsLeaf>0)
+        if(nIsLeaf>0)//nIsLeaf=1则为叶子节点
         {
             int wid = m_words.size();
             m_words.resize(wid+1);
@@ -1413,7 +1434,7 @@ bool TemplatedVocabulary<TDescriptor,F>::loadFromTextFile(const std::string &fil
             m_nodes[nid].word_id = wid;
             m_words[wid] = &m_nodes[nid];
         }
-        else
+        else//非叶子节点
         {
             m_nodes[nid].children.reserve(m_k);
         }

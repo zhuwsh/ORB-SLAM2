@@ -1,0 +1,24 @@
+{
+    "files.associations": {
+        "*.tcc": "cpp",
+        "istream": "cpp",
+        "iosfwd": "cpp",
+        "sstream": "cpp",
+        "list": "cpp",
+        "mutex": "cpp",
+        "deque": "cpp",
+        "vector": "cpp",
+        "*.ipp": "cpp",
+        "cmath": "cpp",
+        "array": "cpp",
+        "unordered_map": "cpp",
+        "initializer_list": "cpp",
+        "thread": "cpp",
+        "bitset": "cpp",
+        "chrono": "cpp",
+        "system_error": "cpp",
+        "functional": "cpp",
+        "utility": "cpp",
+        "ostream": "cpp"
+    }
+}

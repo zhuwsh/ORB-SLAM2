@@ -105,12 +105,13 @@ public:
 
     // Lists used to recover the full camera trajectory at the end of the execution.
     // Basically we store the reference keyframe for each frame and its relative transformation
-    list<cv::Mat> mlRelativeFramePoses;
-    list<KeyFrame*> mlpReferences;
-    list<double> mlFrameTimes;
-    list<bool> mlbLost;
+    list<cv::Mat> mlRelativeFramePoses;//相关的帧位姿
+    list<KeyFrame*> mlpReferences;//参考关键帧
+    list<double> mlFrameTimes;//帧时间记录
+    list<bool> mlbLost;//是否丢失跟踪
 
     // True if local mapping is deactivated and we are performing only localization
+    //如果本地建图已经停止并且我们只使用定位方法时，该标记为True
     bool mbOnlyTracking;
 
     void Reset();
@@ -163,6 +164,7 @@ protected:
     KeyFrameDatabase* mpKeyFrameDB;
 
     // Initalization (only for monocular)
+    //单目相机初始化标志
     Initializer* mpInitializer;
 
     //Local Map

@@ -103,7 +103,7 @@ protected:
 
     LoopClosing* mpLoopCloser;
     Tracking* mpTracker;
-
+    //存储Tracking线程中产生的keyFrame的队列
     std::list<KeyFrame*> mlNewKeyFrames;
 
     KeyFrame* mpCurrentKeyFrame;

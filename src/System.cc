@@ -28,7 +28,12 @@
 
 namespace ORB_SLAM2
 {
-
+/**
+ * strVocFile 为词典文件
+ * strSettingsFile 为设置配置文件
+ * sensor sensor类型，单目、双目和RGBD
+ * bUseViewer 是否进行相机位姿和图片帧显示
+*/
 System::System(const string &strVocFile, const string &strSettingsFile, const eSensor sensor,
                const bool bUseViewer):mSensor(sensor), mpViewer(static_cast<Viewer*>(NULL)), mbReset(false),mbActivateLocalizationMode(false),
         mbDeactivateLocalizationMode(false)
@@ -60,7 +65,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     //Load ORB Vocabulary
     cout << endl << "Loading ORB Vocabulary. This could take a while..." << endl;
-
+    //1.读取ORB字典
     mpVocabulary = new ORBVocabulary();
     bool bVocLoad = mpVocabulary->loadFromTextFile(strVocFile);
     if(!bVocLoad)
@@ -71,38 +76,45 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     }
     cout << "Vocabulary loaded!" << endl << endl;
 
-    //Create KeyFrame Database
+    //Create KeyFrame Database 2.创建关键帧数据库
     mpKeyFrameDatabase = new KeyFrameDatabase(*mpVocabulary);
 
-    //Create the Map
+    //Create the Map 创建地图对象
     mpMap = new Map();
 
-    //Create Drawers. These are used by the Viewer
+    //Create Drawers. These are used by the Viewer 创建两个显示窗口
     mpFrameDrawer = new FrameDrawer(mpMap);
     mpMapDrawer = new MapDrawer(mpMap, strSettingsFile);
 
     //Initialize the Tracking thread
     //(it will live in the main thread of execution, the one that called this constructor)
+    //3.这里初始化的Tracking线程是在main线程中运行的(其实也就是main线程)
     mpTracker = new Tracking(this, mpVocabulary, mpFrameDrawer, mpMapDrawer,
                              mpMap, mpKeyFrameDatabase, strSettingsFile, mSensor);
 
     //Initialize the Local Mapping thread and launch
+    //4.初始化LocalMapping对象，并开启LocalMapping线程
     mpLocalMapper = new LocalMapping(mpMap, mSensor==MONOCULAR);
     mptLocalMapping = new thread(&ORB_SLAM2::LocalMapping::Run,mpLocalMapper);
 
-    //Initialize the Loop Closing thread and launch
+    //Initialize the Loop Closing thread and launch 
+    //5.初始化LooClosing对象，并开启LoopClosing线程
     mpLoopCloser = new LoopClosing(mpMap, mpKeyFrameDatabase, mpVocabulary, mSensor!=MONOCULAR);
     mptLoopClosing = new thread(&ORB_SLAM2::LoopClosing::Run, mpLoopCloser);
 
     //Initialize the Viewer thread and launch
+    //是否显示图像帧和相机位姿的窗口
     if(bUseViewer)
     {
+        //6.初始化显示窗口对象，并启动线程用于显示图像和地图点
         mpViewer = new Viewer(this, mpFrameDrawer,mpMapDrawer,mpTracker,strSettingsFile);
         mptViewer = new thread(&Viewer::Run, mpViewer);
         mpTracker->SetViewer(mpViewer);
     }
 
     //Set pointers between threads
+    //7.给各个线程分配资源
+    //以下变量设置是为了在各个线程中可以访问其他线程中的数据，方便线程之间的数据交互
     mpTracker->SetLocalMapper(mpLocalMapper);
     mpTracker->SetLoopClosing(mpLoopCloser);
 
@@ -112,7 +124,9 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     mpLoopCloser->SetTracker(mpTracker);
     mpLoopCloser->SetLocalMapper(mpLocalMapper);
 }
-
+/**
+ * 跟踪双目相机
+*/
 cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timestamp)
 {
     if(mSensor!=STEREO)
@@ -163,7 +177,9 @@ cv::Mat System::TrackStereo(const cv::Mat &imLeft, const cv::Mat &imRight, const
     mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
     return Tcw;
 }
-
+/**
+ * 跟踪RGBD相机
+*/
 cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const double &timestamp)
 {
     if(mSensor!=RGBD)
@@ -214,9 +230,14 @@ cv::Mat System::TrackRGBD(const cv::Mat &im, const cv::Mat &depthmap, const doub
     mTrackedKeyPointsUn = mpTracker->mCurrentFrame.mvKeysUn;
     return Tcw;
 }
-
+/**
+ * 跟踪单目相机帧数据
+ * im 图片
+ * timestamp 图片对应的时间戳
+*/
 cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
 {
+    //在单目相机跟踪的接口中判断当前输入的类型不为单目，则退出
     if(mSensor!=MONOCULAR)
     {
         cerr << "ERROR: you called TrackMonocular but input sensor was not set to Monocular." << endl;
@@ -226,11 +247,14 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
     // Check mode change
     {
         unique_lock<mutex> lock(mMutexMode);
+        //初始化System的时候mbActivateLocalizationMode值为false
         if(mbActivateLocalizationMode)
         {
+            //LocalMapping线程停止运行
             mpLocalMapper->RequestStop();
 
             // Wait until Local Mapping has effectively stopped
+            //等待知道LocalMapping线程真正停止运行
             while(!mpLocalMapper->isStopped())
             {
                 usleep(1000);
@@ -239,6 +263,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
             mpTracker->InformOnlyTracking(true);
             mbActivateLocalizationMode = false;
         }
+        //初始化System的时候mbDeactivateLocalizationMode值为false
         if(mbDeactivateLocalizationMode)
         {
             mpTracker->InformOnlyTracking(false);
@@ -256,7 +281,7 @@ cv::Mat System::TrackMonocular(const cv::Mat &im, const double &timestamp)
         mbReset = false;
     }
     }
-
+    //输入图片和时间戳给Tracking线程
     cv::Mat Tcw = mpTracker->GrabImageMonocular(im,timestamp);
 
     unique_lock<mutex> lock2(mMutexState);
@@ -297,13 +322,19 @@ void System::Reset()
     unique_lock<mutex> lock(mMutexReset);
     mbReset = true;
 }
-
+/**
+ * 关闭SLAM系统
+ * 
+*/
 void System::Shutdown()
 {
+    //finish掉LocalMapping线程
     mpLocalMapper->RequestFinish();
+    //finish掉LoopClosing线程
     mpLoopCloser->RequestFinish();
     if(mpViewer)
     {
+        ////finish掉地图显示线程
         mpViewer->RequestFinish();
         while(!mpViewer->isFinished())
             usleep(5000);
@@ -379,7 +410,10 @@ void System::SaveTrajectoryTUM(const string &filename)
     cout << endl << "trajectory saved!" << endl;
 }
 
-
+/**
+ * 保存相机位姿和走过的路径filename文件中
+ * 
+*/
 void System::SaveKeyFrameTrajectoryTUM(const string &filename)
 {
     cout << endl << "Saving keyframe trajectory to " << filename << " ..." << endl;

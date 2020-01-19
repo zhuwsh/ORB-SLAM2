@@ -1,0 +1,16 @@
+1.使用KITTI数据集运行ORB-SLAM2
+  KITTI数据集路径为/home/zhuwsh/Desktop/SLAM/dataset,下面使用该数据集来运行：
+./Examples/Monocular/mono_kitti Vocabulary/ORBvoc.txt Examples/Monocular/KITTI00-02.yaml ../dataset/sequences/00
+
+./Examples/Monocular/mono_kitti Vocabulary/ORBvoc.txt Examples/Monocular/KITTI00-02.yaml ../dataset/sequences/21
+
+2.使用RGB-D数据集运行
+
+python associate.py PATH_TO_SEQUENCE/rgb.txt PATH_TO_SEQUENCE/depth.txt > associations.txt #生成associations file
+
+./Examples/RGB-D/rgbd_tum Vocabulary/ORBvoc.txt Examples/RGB-D/TUM1.yaml ../dataset/rgbd_dataset_freiburg1_xyz Examples/RGB-D/associations/fr1_desk.txt
+
+
+
+
+

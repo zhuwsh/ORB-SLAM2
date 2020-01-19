@@ -58,6 +58,8 @@ public:
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
+    //提取的关键点存放在mvKeys和mDescriptors中
+    //ORB是直接调orbExtractor提取的
     void ExtractORB(int flag, const cv::Mat &im);
 
     // Compute Bag of Words representation.
@@ -129,6 +131,7 @@ public:
     float mThDepth;
 
     // Number of KeyPoints.
+    // 关键点个数
     int N;
 
     // Vector of keypoints (original for visualization) and undistorted (actually used by the system).
@@ -153,6 +156,7 @@ public:
     std::vector<MapPoint*> mvpMapPoints;
 
     // Flag to identify outlier associations.
+    //标识异常关联的标志
     std::vector<bool> mvbOutlier;
 
     // Keypoints are assigned to cells in a grid to reduce matching complexity when projecting MapPoints.
@@ -161,6 +165,7 @@ public:
     std::vector<std::size_t> mGrid[FRAME_GRID_COLS][FRAME_GRID_ROWS];
 
     // Camera pose.
+    //相机位姿
     cv::Mat mTcw;
 
     // Current and Next Frame id.

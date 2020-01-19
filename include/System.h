@@ -39,7 +39,7 @@
 namespace ORB_SLAM2
 {
 
-class Viewer;
+class Viewer;//进行图像帧和相机运动轨迹显示
 class FrameDrawer;
 class Map;
 class Tracking;
@@ -125,30 +125,43 @@ public:
 private:
 
     // Input sensor
+    //存储sensor类型
     eSensor mSensor;
 
     // ORB vocabulary used for place recognition and feature matching.
+    // 用于位置识别和特征匹配的ORB词典
     ORBVocabulary* mpVocabulary;
 
     // KeyFrame database for place recognition (relocalization and loop detection).
+    //用于位置识别（重定位和回环检测）的关键帧存储数据库
     KeyFrameDatabase* mpKeyFrameDatabase;
 
     // Map structure that stores the pointers to all KeyFrames and MapPoints.
+    //存储指向所有关键帧和MapPoint的地图结构体
     Map* mpMap;
 
     // Tracker. It receives a frame and computes the associated camera pose.
     // It also decides when to insert a new keyframe, create some new MapPoints and
     // performs relocalization if tracking fails.
+    //指向Tracking对象。
+    //1.接收Frame帧；
+    //2.计算和帧相关联的相机位姿；
+    //3.决定什么时候插入一个新的关键帧、创建一些新的MapPoints，并且在Tracking失败后进行重定位；
     Tracking* mpTracker;
 
     // Local Mapper. It manages the local map and performs local bundle adjustment.
+    //指向LocalMapping对象。
+    //管理本地地图并且进行本地BA优化操作
     LocalMapping* mpLocalMapper;
 
     // Loop Closer. It searches loops with every new keyframe. If there is a loop it performs
     // a pose graph optimization and full bundle adjustment (in a new thread) afterwards.
+    //指向LoopCloser。
+    //对每一个新的关键帧进行回环检测。如果存在回环，则进行位姿图优化并创建新的线程进行完整的BA优化
     LoopClosing* mpLoopCloser;
 
     // The viewer draws the map and the current camera pose. It uses Pangolin.
+    //使用Pangolin工具来绘制地图和当前的相机位姿
     Viewer* mpViewer;
 
     FrameDrawer* mpFrameDrawer;

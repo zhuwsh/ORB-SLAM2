@@ -50,6 +50,10 @@ int main(int argc, char **argv)
     int nImages = vstrImageFilenames.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
+    /**
+     * argv[1]为vocfile 里边存储的是词袋
+     * argv[2]为settingfile 里边存储摄像机校准和畸变参数和ORB相关参数
+    */
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::MONOCULAR,true);
 
     // Vector for tracking time statistics
@@ -60,12 +64,13 @@ int main(int argc, char **argv)
     cout << "Start processing sequence ..." << endl;
     cout << "Images in the sequence: " << nImages << endl << endl;
 
-    // Main loop
+    // Main loop 主循环代码，循环读取图片
     cv::Mat im;
     for(int ni=0; ni<nImages; ni++)
     {
-        // Read image from file
+        // Read image from file 读取图片
         im = cv::imread(vstrImageFilenames[ni],CV_LOAD_IMAGE_UNCHANGED);
+        //读取时间戳
         double tframe = vTimestamps[ni];
 
         if(im.empty())
@@ -80,7 +85,7 @@ int main(int argc, char **argv)
         std::chrono::monotonic_clock::time_point t1 = std::chrono::monotonic_clock::now();
 #endif
 
-        // Pass the image to the SLAM system
+        // Pass the image to the SLAM system 将图片传给SLAM系统。TrackMonocular是主线程里调用Tracking的入口函数，至此Tracking线程运行
         SLAM.TrackMonocular(im,tframe);
 
 #ifdef COMPILEDWITHC11
@@ -104,7 +109,7 @@ int main(int argc, char **argv)
             usleep((T-ttrack)*1e6);
     }
 
-    // Stop all threads
+    // Stop all threads 关闭SLAM系统，也就关闭了系统中的几个线程
     SLAM.Shutdown();
 
     // Tracking time statistics
@@ -118,12 +123,18 @@ int main(int argc, char **argv)
     cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
     cout << "mean tracking time: " << totaltime/nImages << endl;
 
-    // Save camera trajectory
+    // Save camera trajectory 保存相机轨迹
     SLAM.SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");    
 
     return 0;
 }
-
+/**
+ * 该函数中参数如下
+ * strPathToSequence 为入参，表示image文件存储的路径
+ * vstrImageFilenames 为出参，存储获取image文件列表的具体路径
+ * vTimestamps 为出参， 存储和每一个image文件对应的时间戳
+ * 
+*/
 void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilenames, vector<double> &vTimestamps)
 {
     ifstream fTimes;
@@ -139,10 +150,11 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilena
             ss << s;
             double t;
             ss >> t;
+            //vTimestamps中存入了所有的时间戳
             vTimestamps.push_back(t);
         }
     }
-
+    //组装mono_kitti数据集中image_0目录的路径
     string strPrefixLeft = strPathToSequence + "/image_0/";
 
     const int nTimes = vTimestamps.size();
@@ -151,6 +163,10 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageFilena
     for(int i=0; i<nTimes; i++)
     {
         stringstream ss;
+        //std::setw ：需要填充多少个字符,默认填充的字符为' '空格
+        //std::setfill：设置std::setw将填充什么样的字符，如:std::setfill('*')
+        
+        //ss总共为6位，i之外的前边几位用0来填充，得到的结果为000001 000099之类
         ss << setfill('0') << setw(6) << i;
         vstrImageFilenames[i] = strPrefixLeft + ss.str() + ".png";
     }

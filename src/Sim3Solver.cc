@@ -71,7 +71,7 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
 
             if(pMP1->isBad() || pMP2->isBad())
                 continue;
-
+            //获取MapPoint中记录的能看到该MapPoint的keyframe中对应的关键点的index
             int indexKF1 = pMP1->GetIndexInKeyFrame(pKF1);
             int indexKF2 = pMP2->GetIndexInKeyFrame(pKF2);
 
@@ -90,27 +90,30 @@ Sim3Solver::Sim3Solver(KeyFrame *pKF1, KeyFrame *pKF2, const vector<MapPoint *> 
             mvpMapPoints1.push_back(pMP1);
             mvpMapPoints2.push_back(pMP2);
             mvnIndices1.push_back(i1);
-
+            //pMP1对应的相机坐标
             cv::Mat X3D1w = pMP1->GetWorldPos();
             mvX3Dc1.push_back(Rcw1*X3D1w+tcw1);
 
             cv::Mat X3D2w = pMP2->GetWorldPos();
+            //pMP2对应的相机坐标
             mvX3Dc2.push_back(Rcw2*X3D2w+tcw2);
 
             mvAllIndices.push_back(idx);
             idx++;
         }
     }
-
+    //相机内参
     mK1 = pKF1->mK;
     mK2 = pKF2->mK;
-
+    //FromCameraToImage函数计算从相机坐标到像素坐标的投影点，mvP1im1为投影点列表。
     FromCameraToImage(mvX3Dc1,mvP1im1,mK1);
     FromCameraToImage(mvX3Dc2,mvP2im2,mK2);
 
     SetRansacParameters();
 }
-
+/**
+ * 参数默认值：double probability = 0.99, int minInliers = 6 , int maxIterations = 300
+*/
 void Sim3Solver::SetRansacParameters(double probability, int minInliers, int maxIterations)
 {
     mRansacProb = probability;
@@ -163,6 +166,7 @@ cv::Mat Sim3Solver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInli
         vAvailableIndices = mvAllIndices;
 
         // Get min set of points
+        // 每次随机获取3对匹配点
         for(short i = 0; i < 3; ++i)
         {
             int randi = DUtils::Random::RandomInt(0, vAvailableIndices.size()-1);
@@ -175,7 +179,7 @@ cv::Mat Sim3Solver::iterate(int nIterations, bool &bNoMore, vector<bool> &vbInli
             vAvailableIndices[randi] = vAvailableIndices.back();
             vAvailableIndices.pop_back();
         }
-
+        //进行sim3求解
         ComputeSim3(P3Dc1i,P3Dc2i);
 
         CheckInliers();
@@ -222,7 +226,10 @@ void Sim3Solver::ComputeCentroid(cv::Mat &P, cv::Mat &Pr, cv::Mat &C)
         Pr.col(i)=P.col(i)-C;
     }
 }
-
+/**
+ * 计算sim3
+ * P1和P2中每一列相对应为匹配的3对点
+*/
 void Sim3Solver::ComputeSim3(cv::Mat &P1, cv::Mat &P2)
 {
     // Custom implementation of:
@@ -401,7 +408,9 @@ void Sim3Solver::Project(const vector<cv::Mat> &vP3Dw, vector<cv::Mat> &vP2D, cv
         vP2D.push_back((cv::Mat_<float>(2,1) << fx*x+cx, fy*y+cy));
     }
 }
-
+/**
+ * 计算从相机坐标到像素坐标的投影
+*/
 void Sim3Solver::FromCameraToImage(const vector<cv::Mat> &vP3Dc, vector<cv::Mat> &vP2D, cv::Mat K)
 {
     const float &fx = K.at<float>(0,0);
@@ -410,6 +419,7 @@ void Sim3Solver::FromCameraToImage(const vector<cv::Mat> &vP3Dc, vector<cv::Mat>
     const float &cy = K.at<float>(1,2);
 
     vP2D.clear();
+    //vP3Dc为相机坐标，vP2D为要投影到的像素点坐标
     vP2D.reserve(vP3Dc.size());
 
     for(size_t i=0, iend=vP3Dc.size(); i<iend; i++)

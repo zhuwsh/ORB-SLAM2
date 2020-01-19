@@ -32,9 +32,16 @@ namespace ORB_SLAM2
 FrameDrawer::FrameDrawer(Map* pMap):mpMap(pMap)
 {
     mState=Tracking::SYSTEM_NOT_READY;
+    /**
+     * Mat(int rows, int cols, int type, const Scalar& s)
+     * 创建行数为 rows，列数为 col，类型为 type 的图像，并将所有元素初始化为值 s
+     * */
     mIm = cv::Mat(480,640,CV_8UC3, cv::Scalar(0,0,0));
 }
-
+/**
+ * 根据传入的图片帧，在其中标注计算出来的特征点
+ * 
+*/
 cv::Mat FrameDrawer::DrawFrame()
 {
     cv::Mat im;
@@ -50,7 +57,7 @@ cv::Mat FrameDrawer::DrawFrame()
         state=mState;
         if(mState==Tracking::SYSTEM_NOT_READY)
             mState=Tracking::NO_IMAGES_YET;
-
+        //将mIm图像拷贝到im中
         mIm.copyTo(im);
 
         if(mState==Tracking::NOT_INITIALIZED)
@@ -105,7 +112,21 @@ cv::Mat FrameDrawer::DrawFrame()
                 // This is a match to a MapPoint in the map
                 if(vbMap[i])
                 {
+                    /**
+                     * 这个是画矩形框的函数
+                     * im 图像
+                     * pt1和pt2为矩形对角线上的两个顶点坐标
+                     * cv::Scalar(0,255,0) 为线条颜色
+                    */
                     cv::rectangle(im,pt1,pt2,cv::Scalar(0,255,0));
+                    /**
+                     * void circle(CV_IN_OUT Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0); 
+                     * img为图像，单通道多通道都行，不需要特殊要求
+                     * center为画圆的圆心坐标，这里是关键点的坐标值
+                     * radius为圆的半径
+                     * color为设定圆的颜色，比如用CV_RGB(255, 0,0)设置为红色， CV_RGB(255, 255,255)设置为白色，CV_RGB(0, 0,0)设置为黑色 
+                     * thickness为设置圆线条的粗细，值越大则线条越粗，为负数则是填充效果
+                    */
                     cv::circle(im,vCurrentKeys[i].pt,2,cv::Scalar(0,255,0),-1);
                     mnTracked++;
                 }
@@ -120,12 +141,16 @@ cv::Mat FrameDrawer::DrawFrame()
     }
 
     cv::Mat imWithInfo;
+    //图像帧内文字的显示
     DrawTextInfo(im,state, imWithInfo);
 
     return imWithInfo;
 }
 
-
+/**
+ * 图像帧内Text文字的显示
+ * 
+*/
 void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 {
     stringstream s;
@@ -167,7 +192,9 @@ void FrameDrawer::DrawTextInfo(cv::Mat &im, int nState, cv::Mat &imText)
 void FrameDrawer::Update(Tracking *pTracker)
 {
     unique_lock<mutex> lock(mMutex);
+    //将pTracker->mImGray拷贝到mIm中，用于在窗口中显示图片帧
     pTracker->mImGray.copyTo(mIm);
+    //当前帧的特征关键点获取
     mvCurrentKeys=pTracker->mCurrentFrame.mvKeys;
     N = mvCurrentKeys.size();
     mvbVO = vector<bool>(N,false);
@@ -189,6 +216,7 @@ void FrameDrawer::Update(Tracking *pTracker)
             {
                 if(!pTracker->mCurrentFrame.mvbOutlier[i])
                 {
+                    //表示这些地图点在视图中显示
                     if(pMP->Observations()>0)
                         mvbMap[i]=true;
                     else

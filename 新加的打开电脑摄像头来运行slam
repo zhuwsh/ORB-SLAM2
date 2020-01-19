@@ -1,0 +1,7 @@
+1.ORB-SLAM2根目录下添加了myslam.cc、myslam.yaml文件，myslam.yaml文件为对相机的标定文件；
+2.修改了CMakeLists.txt文件，添加了myslam的编译；
+  #生成调用摄像头可执行文件
+  add_executable(myslam myslam.cc)
+  target_link_libraries(myslam ${PROJECT_NAME})
+3.在build中直行cmake..、make命令，生成了可执行的myslam文件，路径为./Examples/Monocular/myslam
+4.执行命令，验证结果./Examples/Monocular/myslam

@@ -184,7 +184,7 @@ double KLScoring::score(const BowVector &v1, const BowVector &v2) const
   double score = 0;
   
   // all the items or v are taken into account
-  
+  //同时遍历v1和v2两个列表
   while(v1_it != v1_end && v2_it != v2_end)
   {
     const WordValue& vi = v1_it->second;

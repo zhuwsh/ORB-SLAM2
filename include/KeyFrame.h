@@ -149,7 +149,7 @@ public:
     float mRelocScore;
 
     // Variables used by loop closing
-    cv::Mat mTcwGBA;
+    cv::Mat mTcwGBA; //全局优化后的Tcw
     cv::Mat mTcwBefGBA;
     long unsigned int mnBAGlobalForKF;
 
@@ -193,13 +193,14 @@ public:
 protected:
 
     // SE3 Pose and camera center
-    cv::Mat Tcw;
-    cv::Mat Twc;
-    cv::Mat Ow;
+    cv::Mat Tcw;//Tcw是相机到世界坐标系的变换
+    cv::Mat Twc;//Twc是世界坐标系到相机坐标系的变换
+    cv::Mat Ow;//相机中心点
 
     cv::Mat Cw; // Stereo middel point. Only for visualization
 
     // MapPoints associated to keypoints
+    // 和帧中关键点对应的MapPoint列表
     std::vector<MapPoint*> mvpMapPoints;
 
     // BoW
@@ -207,10 +208,13 @@ protected:
     ORBVocabulary* mpORBvocabulary;
 
     // Grid over the image to speed up feature matching
+    //将图像分布在网格中来加速特征匹配
     std::vector< std::vector <std::vector<size_t> > > mGrid;
-
+    //存储与该关键帧连接的关键帧和权重
     std::map<KeyFrame*,int> mConnectedKeyFrameWeights;
+    //存储排序后的关键帧
     std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;
+    //存储排序后的权重(从大到小)
     std::vector<int> mvOrderedWeights;
 
     // Spanning Tree and Loop Edges
