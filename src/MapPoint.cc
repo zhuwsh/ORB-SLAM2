@@ -316,7 +316,8 @@ void MapPoint::ComputeDistinctiveDescriptors()
     // Take the descriptor with least median distance to the rest
     int BestMedian = INT_MAX;
     int BestIdx = 0;
-    //每一次for循环里计算出的是i这个描述子距离其他描述子的平均距离中值最小的那个
+    /*每一次for循环里计算出的是i这个描述子距离其他描述子的中值距离，将这个中值距离作为最好的中值距离，
+    每次循环去更新，最后循环完成的时候得到的就是最小的中值距离*/
     for(size_t i = 0; i < N; i++)
     {
         vector<int> vDists(Distances[i],Distances[i]+N);

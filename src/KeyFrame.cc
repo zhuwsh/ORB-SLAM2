@@ -684,22 +684,26 @@ float KeyFrame::ComputeSceneMedianDepth(const int q)
 
     vector<float> vDepths;
     vDepths.reserve(N);
+    //找出当前帧z方向上的旋转
     cv::Mat Rcw2 = Tcw_.row(2).colRange(0,3);
     Rcw2 = Rcw2.t();
+    //找出当前帧z方向行的平移
     float zcw = Tcw_.at<float>(2,3);
     for(int i=0; i<N; i++)
     {
         if(mvpMapPoints[i])
         {
             MapPoint* pMP = mvpMapPoints[i];
+            //获取每个地图点的世界坐标
             cv::Mat x3Dw = pMP->GetWorldPos();
+            //当前帧z方向上的旋转和地图点的世界坐标系相乘再加上z轴方向上的平移，获得的是地图点在当前相机坐标系中z轴的位置
             float z = Rcw2.dot(x3Dw)+zcw;
             vDepths.push_back(z);
         }
     }
-
+    //排序
     sort(vDepths.begin(),vDepths.end());
-
+    //求深度的平均值
     return vDepths[(vDepths.size()-1)/q];
 }
 

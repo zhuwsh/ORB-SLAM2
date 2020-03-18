@@ -89,7 +89,7 @@ void Optimizer::BundleAdjustment(const vector<KeyFrame *> &vpKFs, const vector<M
             continue;
         //5.1 VertexSE3Expmap创建相机位姿结点，并加入优化器
         g2o::VertexSE3Expmap * vSE3 = new g2o::VertexSE3Expmap();
-        vSE3->setEstimate(Converter::toSE3Quat(pKF->GetPose()));//优化的是位姿
+        vSE3->setEstimate(Converter::toSE3Quat(pKF->GetPose()));//优化的是位姿，也就是变换矩阵
         vSE3->setId(pKF->mnId);
         vSE3->setFixed(pKF->mnId==0);
         optimizer.addVertex(vSE3);
@@ -419,7 +419,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     }
     }
 
-
+    //至少需要使用三对点进行P3P求解，三对3D-2D匹配点
     if(nInitialCorrespondences<3)
         return 0;
 
@@ -430,6 +430,7 @@ int Optimizer::PoseOptimization(Frame *pFrame)
     const int its[4]={10,10,10,10};    
 
     int nBad=0;
+    //优化四次
     for(size_t it=0; it<4; it++)
     {
 

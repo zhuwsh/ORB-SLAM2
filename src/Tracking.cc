@@ -475,6 +475,7 @@ void Tracking::Track()
                 cv::Mat LastTwc = cv::Mat::eye(4,4,CV_32F);
                 mLastFrame.GetRotationInverse().copyTo(LastTwc.rowRange(0,3).colRange(0,3));
                 mLastFrame.GetCameraCenter().copyTo(LastTwc.rowRange(0,3).col(3));
+                //当前帧的位姿和上一个帧的位姿相乘获得速度
                 mVelocity = mCurrentFrame.mTcw*LastTwc;
             }
             else
@@ -1167,7 +1168,7 @@ bool Tracking::TrackLocalMap()
 
     // Decide if the tracking was succesful
     // More restrictive if there was a relocalization recently
-    //步骤4：决定是否跟踪成功
+    //步骤4：决定是否跟踪成功 mnLastRelocFrameId为上次重定位的帧id，mMaxFrames为一秒钟内上报的帧数目
     if(mCurrentFrame.mnId < mnLastRelocFrameId+mMaxFrames && mnMatchesInliers < 50)
         return false;
 
@@ -1482,7 +1483,7 @@ void Tracking::UpdateLocalMap()
  * 局部关键帧mvpLocalKeyFrames的MapPoints，更新mvpLocalMapPoints
 */
 void Tracking::UpdateLocalPoints()
-{   
+{
     //步骤1：清空局部MapPoints
     mvpLocalMapPoints.clear();
     //步骤2：遍历局部关键帧mvpLocalKeyFrames
