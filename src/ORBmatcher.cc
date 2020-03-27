@@ -973,7 +973,7 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const
             if(kpLevel<nPredictedLevel-1 || kpLevel>nPredictedLevel)
                 continue;
 
-            if(pKF->mvuRight[idx]>=0)
+            if(pKF->mvuRight[idx]>=0)//非单目情况
             {
                 // Check reprojection error in stereo
                 const float &kpx = kp.pt.x;
@@ -988,7 +988,7 @@ int ORBmatcher::Fuse(KeyFrame *pKF, const vector<MapPoint *> &vpMapPoints, const
                     continue;
             }
             else
-            {
+            {//单目情况
                 const float &kpx = kp.pt.x;
                 const float &kpy = kp.pt.y;
                 const float ex = u-kpx;

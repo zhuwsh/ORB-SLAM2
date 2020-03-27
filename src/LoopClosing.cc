@@ -401,6 +401,9 @@ bool LoopClosing::ComputeSim3()
                 if(nInliers>=20)
                 {
                     bMatch = true;
+                    /**
+                     * 这里记录的是匹配的闭环关键帧
+                    */
                     mpMatchedKF = pKF;
                     //当前帧的sim3，其中s=1.0
                     g2o::Sim3 gSmw(Converter::toMatrix3d(pKF->GetRotation()), Converter::toVector3d(pKF->GetTranslation()), 1.0);
@@ -449,7 +452,7 @@ bool LoopClosing::ComputeSim3()
 
     // Find more matches projecting with the computed Sim3
     /**
-     * 获取mpMatchedKF及其相连关键帧对应的地图的地图点。将这些地图点通过上面优化得到的Sim3(gScm>mScw) 
+     * 获取mpMatchedKF及其相连关键帧对应的地图的地图点。将这些地图点通过上面优化得到的Sim3(gScm->mScw) 
      * 变换投影到当前关键帧进行匹配，若匹配点>=40个，则返回true,进行闭环调整，否则，返回false, 
      * 线程暂停5ms后继续接收Tracking发送来的关键帧队列 
      * 注意这里得到的当前关键帧中匹配上闭环关键帧共视地图点(mvpCurrentMatchedPoints)
@@ -550,18 +553,26 @@ void LoopClosing::CorrectLoop()
         for(vector<KeyFrame*>::iterator vit=mvpCurrentConnectedKFs.begin(), vend=mvpCurrentConnectedKFs.end(); vit!=vend; vit++)
         {
             KeyFrame* pKFi = *vit;
-
+            //这里获得的Tiw是相机到世界坐标系的变换
             cv::Mat Tiw = pKFi->GetPose();
 
             if(pKFi!=mpCurrentKF)
             {
+                //这里获得的是当前帧到pKFi帧的相对变换
+                /**
+                 * Tiw是pKFi的相机到世界坐标系的变换矩阵
+                 * Twc是mpCurrentKF的世界到相机坐标系的变换矩阵
+                 * 则Tic为pKFi相对于mpCurrentKF的位姿变换
+                */
                 cv::Mat Tic = Tiw*Twc;
                 cv::Mat Ric = Tic.rowRange(0,3).colRange(0,3);
                 cv::Mat tic = Tic.rowRange(0,3).col(3);
+                //构造pKFi的sim3变换，s设置为1
                 g2o::Sim3 g2oSic(Converter::toMatrix3d(Ric),Converter::toVector3d(tic),1.0);
-                //得到sim3更新后的位姿
+                //当前帧的位姿固定不动，其它的关键帧根据相对关系得到sim3更新后的位姿
                 g2o::Sim3 g2oCorrectedSiw = g2oSic*mg2oScw;
                 //Pose corrected with the Sim3 of the loop closure
+                //得到闭环g2o优化后各个关键帧的位姿
                 CorrectedSim3[pKFi]=g2oCorrectedSiw;
             }
 
@@ -569,6 +580,7 @@ void LoopClosing::CorrectLoop()
             cv::Mat tiw = Tiw.rowRange(0,3).col(3);
             g2o::Sim3 g2oSiw(Converter::toMatrix3d(Riw),Converter::toVector3d(tiw),1.0);
             //Pose without correction
+            //当前帧相连关键帧，没有进行闭环优化的位姿
             NonCorrectedSim3[pKFi]=g2oSiw;
         }
 
@@ -596,9 +608,19 @@ void LoopClosing::CorrectLoop()
                 // Project with non-corrected pose and project back with corrected pose
                 //将闭环帧及其相连帧的地图点都投影到当前帧以及相连帧上
                 cv::Mat P3Dw = pMPi->GetWorldPos();
+                /**
+                 * 将地图点的世界坐标转换为eigen当中的矩阵Matrix形式
+                */
                 Eigen::Matrix<double,3,1> eigP3Dw = Converter::toVector3d(P3Dw);
+                /**
+                 * g2oSiw.map(eigP3Dw)：g2oSiw是每个关键帧最初的尺度为1的位姿，将eigP3Dw使用最初的位姿进行相似变换求解得到未进行sim3优化前关键帧中的投影
+                 * g2oCorrectedSwi.map(g2oSiw.map(eigP3Dw))：g2oCorrectedSwi是每个关键帧的sim3纠正后的带尺度的位姿的逆，map投影后就是将关键帧中的相机坐标投影到世界坐标
+                 * eigCorrectedP3Dw就是地图点在世界坐标系当中的坐标矩阵
+                */
                 Eigen::Matrix<double,3,1> eigCorrectedP3Dw = g2oCorrectedSwi.map(g2oSiw.map(eigP3Dw));
-
+                /**
+                 * eigCorrectedP3Dw转换为Mat形式
+                */
                 cv::Mat cvCorrectedP3Dw = Converter::toCvMat(eigCorrectedP3Dw);
                 pMPi->SetWorldPos(cvCorrectedP3Dw);
                 pMPi->mnCorrectedByKF = mpCurrentKF->mnId;
@@ -649,6 +671,7 @@ void LoopClosing::CorrectLoop()
     // into the current keyframe and neighbors using corrected poses.
     // Fuse duplications.
     //8.将这些已纠正位姿的MapPoints与闭环MapPoints融合
+    //CorrectedSim3的index为关键帧，值为经过g2o优化后的sim3变换位姿
     SearchAndFuse(CorrectedSim3);
 
 
@@ -698,7 +721,10 @@ void LoopClosing::CorrectLoop()
     //12.更新最后一个闭环关键帧id
     mLastLoopKFid = mpCurrentKF->mnId;   
 }
-
+/**
+ * mvpLoopMapPoints中存放的是匹配闭环关键帧和其共视关键帧当中的地图点
+ * CorrectedPosesMap中存放的是当前关键帧的共视关键帧和经过sim3纠正后的位姿
+*/
 void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)
 {
     ORBmatcher matcher(0.8);
@@ -711,9 +737,15 @@ void LoopClosing::SearchAndFuse(const KeyFrameAndPose &CorrectedPosesMap)
         cv::Mat cvScw = Converter::toCvMat(g2oScw);
 
         vector<MapPoint*> vpReplacePoints(mvpLoopMapPoints.size(),static_cast<MapPoint*>(NULL));
+        /**
+         * 计算mvpLoopMapPoints当中的地图点通过cvScw位姿投影有所得像素帧特征点是否在pKF帧内，并且投影特征点的描述子和地图点的描述子是否匹配
+         * 如果匹配成功，此时如果关键帧pKF当中不存在该地图点，则将该地图点添加到关键帧中，并更新地图点的观测帧
+         * vpReplacePoints返回值为pKF中已经存在的有效地图点
+        */
         matcher.Fuse(pKF,cvScw,mvpLoopMapPoints,4,vpReplacePoints);
 
         // Get Map Mutex
+        //更新pKF当中已经存在的有效地图点
         unique_lock<mutex> lock(mpMap->mMutexMapUpdate);
         const int nLP = mvpLoopMapPoints.size();
         for(int i=0; i<nLP;i++)
